@@ -29,9 +29,6 @@ COPY . .
 
 ENV NEXT_PUBLIC_BASE_PATH ""
 
-# CLERK
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZHVzaHVyZW5zLnRvcCQ
-
 # Sentry
 ENV NEXT_PUBLIC_SENTRY_DSN ""
 ENV SENTRY_ORG ""
@@ -47,8 +44,14 @@ ENV NEXT_PUBLIC_ANALYTICS_UMAMI ""
 ENV NEXT_PUBLIC_UMAMI_SCRIPT_URL ""
 ENV NEXT_PUBLIC_UMAMI_WEBSITE_ID ""
 
+#clerk
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ""
 
-RUN pnpm run build:docker # run build standalone for docker version
+# Node
+ENV NODE_OPTIONS "--max-old-space-size=8192"
+
+# run build standalone for docker version
+RUN npm run build:docker
 
 ## Production image, copy all the files and run next
 FROM base AS runner
@@ -129,7 +132,10 @@ ENV TOGETHERAI_API_KEY ""
 # Minimax
 ENV MINIMAX_API_KEY ""
 
-# Minimax
-ENV MINIMAX_API_KEY ""
+# DeepSeek
+ENV DEEPSEEK_API_KEY ""
+
+# Clerk
+ENV CLERK_SECRET_KEY ""
 
 CMD ["node", "server.js"]
