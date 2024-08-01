@@ -2,7 +2,7 @@ name: Sync Releases
 
 on:
   schedule:
-    - cron: '0 * * * *' # 每小时运行一次，具体时间间隔可根据需求调整
+    - cron: '0 */6 * * *' # 每6小时运行一次，具体时间间隔可根据需求调整
   workflow_dispatch: # 手动触发
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
 
     - name: Compare versions and create release if needed
       if: steps.fetch-latest-release.outputs.tag_name != steps.fetch-current-release.outputs.tag_name
-      uses: actions/create-release@latest
+      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
