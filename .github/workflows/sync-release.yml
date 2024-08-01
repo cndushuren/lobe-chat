@@ -48,9 +48,19 @@ jobs:
           latest_upstream_release=$(git tag | grep -v - | sort -V | tail -n 1)
           echo "latest_upstream_release=${latest_upstream_release}" >> $GITHUB_ENV
 
-      - name: Create a new release
-        if: env.latest_upstream_release != '' && env.current_tags != env.latest_upstream_release
+      - name: Push new release to origin
         run: |
-          # 创建新版本
-          git tag -a "$latest_upstream_release" -m "Release $latest_upstream_release from upstream"
+          # 推送上游的最新标签到自己的仓库
           git push origin "$latest_upstream_release"
+
+      - name: Create GitHub Release
+        if: env.latest_upstream_release != '' && env.current_tags != env.latest_upstream_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.latest_upstream_release }}
+          release_name: Release ${{ env.latest_upstream_release }}
+          body: "Release ${{ env.latest_upstream_release }} from upstream."
+          draft: false
+          prerelease: false
