@@ -51,7 +51,7 @@ jobs:
       - name: Push new release to origin
         run: |
           # 推送上游的最新标签到自己的仓库
-          git push origin "$latest_upstream_release"
+          git push origin "$latest_upstream_release" --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
