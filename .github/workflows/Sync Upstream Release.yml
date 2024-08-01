@@ -1,6 +1,7 @@
 name: Sync Upstream Release
 
 on:
+  workflow_dispatch:  # 添加这个事件
   release:
     types: [published]
 
