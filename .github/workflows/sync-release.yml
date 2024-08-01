@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 需要完整的历史记录以便于版本标签的处理
 
@@ -23,8 +23,23 @@ jobs:
       - name: Add upstream remote
         run: git remote add upstream https://github.com/lobehub/lobe-chat.git
 
+      - name: Save current local tags
+        id: save_tags
+        run: |
+          current_tags=$(git tag | grep -v - | sort -V | tail -n 1)
+          echo "current_tags=${current_tags}" >> $GITHUB_ENV
+
       - name: Fetch upstream releases
-        run: git fetch upstream --tags
+        run: |
+          # 删除本地的冲突标签
+          for tag in $(git tag); do
+            if git ls-remote --tags upstream | grep -q "refs/tags/$tag"; then
+              git tag -d "$tag"
+            fi
+          done
+
+          # 获取上游标签
+          git fetch upstream --tags
 
       - name: Check for new upstream release
         id: check_release
@@ -34,14 +49,8 @@ jobs:
           echo "latest_upstream_release=${latest_upstream_release}" >> $GITHUB_ENV
 
       - name: Create a new release
-        if: env.latest_upstream_release != ''
+        if: env.latest_upstream_release != '' && env.current_tags != env.latest_upstream_release
         run: |
-          # 检查当前仓库的最新版本
-          current_release=$(git tag | grep -v - | sort -V | tail -n 1)
-          if [[ "$current_release" != "$latest_upstream_release" ]]; then
-            # 创建新版本
-            git tag -a "$latest_upstream_release" -m "Release $latest_upstream_release from upstream"
-            git push origin "$latest_upstream_release"
-          else
-            echo "No new release to publish."
-          fi
+          # 创建新版本
+          git tag -a "$latest_upstream_release" -m "Release $latest_upstream_release from upstream"
+          git push origin "$latest_upstream_release"
