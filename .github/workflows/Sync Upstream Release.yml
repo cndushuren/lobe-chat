@@ -1,0 +1,46 @@
+name: Sync Upstream Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  sync-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # 需要完整的历史记录以便于版本标签的处理
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "cnlihz"
+          git config --global user.email "931462664@qq.com"
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/lobehub/lobe-chat.git
+
+      - name: Fetch upstream releases
+        run: git fetch upstream --tags
+
+      - name: Check for new upstream release
+        id: check_release
+        run: |
+          # 获取最新的上游版本标签
+          latest_upstream_release=$(git tag | grep -v - | sort -V | tail -n 1)
+          echo "latest_upstream_release=${latest_upstream_release}" >> $GITHUB_ENV
+
+      - name: Create a new release
+        if: env.latest_upstream_release != ''
+        run: |
+          # 检查当前仓库的最新版本
+          current_release=$(git tag | grep -v - | sort -V | tail -n 1)
+          if [[ "$current_release" != "$latest_upstream_release" ]]; then
+            # 创建新版本
+            git tag -a "$latest_upstream_release" -m "Release $latest_upstream_release from upstream"
+            git push origin "$latest_upstream_release"
+          else
+            echo "No new release to publish."
+          fi
