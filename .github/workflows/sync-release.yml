@@ -53,13 +53,13 @@ jobs:
           # 推送上游的最新标签到自己的仓库
           git push origin "$latest_upstream_release"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Create GitHub Release
         if: env.latest_upstream_release != '' && env.current_tags != env.latest_upstream_release
         uses: actions/create-release@latest
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           tag_name: ${{ env.latest_upstream_release }}
           release_name: Release ${{ env.latest_upstream_release }}
