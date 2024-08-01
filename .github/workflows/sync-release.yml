@@ -1,68 +1,45 @@
-name: Sync Upstream Release
+name: Sync Releases
 
 on:
-  workflow_dispatch:  # 添加这个事件
-  release:
-    types: [published]
+  schedule:
+    - cron: '0 * * * *' # 每小时运行一次，具体时间间隔可根据需求调整
+  workflow_dispatch: # 手动触发
 
 jobs:
-  sync-release:
+  sync-releases:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 需要完整的历史记录以便于版本标签的处理
+    - name: Checkout this repository
+      uses: actions/checkout@v4
 
-      - name: Set up Git
-        run: |
-          git config --global user.name "cnlihz"
-          git config --global user.email "931462664@qq.com"
+    - name: Fetch latest release from upstream
+      id: fetch-latest-release
+      run: |
+        LATEST_RELEASE=$(curl -s https://api.github.com/repos/lobehub/lobe-chat/releases/latest)
+        TAG_NAME=$(echo $LATEST_RELEASE | jq -r .tag_name)
+        RELEASE_NAME=$(echo $LATEST_RELEASE | jq -r .name)
+        RELEASE_BODY=$(echo $LATEST_RELEASE | jq -r .body)
+        echo "::set-output name=tag_name::$TAG_NAME"
+        echo "::set-output name=release_name::$RELEASE_NAME"
+        echo "::set-output name=release_body::$RELEASE_BODY"
 
-      - name: Add upstream remote
-        run: git remote add upstream https://github.com/lobehub/lobe-chat.git
+    - name: Fetch latest release from this repository
+      id: fetch-current-release
+      run: |
+        CURRENT_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
+        CURRENT_TAG_NAME=$(echo $CURRENT_RELEASE | jq -r .tag_name)
+        echo "::set-output name=tag_name::$CURRENT_TAG_NAME"
+      continue-on-error: true # 如果没有发布过release，则忽略错误
 
-      - name: Save current local tags
-        id: save_tags
-        run: |
-          current_tags=$(git tag | grep -v - | sort -V | tail -n 1)
-          echo "current_tags=${current_tags}" >> $GITHUB_ENV
-
-      - name: Fetch upstream releases
-        run: |
-          # 删除本地的冲突标签
-          for tag in $(git tag); do
-            if git ls-remote --tags upstream | grep -q "refs/tags/$tag"; then
-              git tag -d "$tag"
-            fi
-          done
-
-          # 获取上游标签
-          git fetch upstream --tags
-
-      - name: Check for new upstream release
-        id: check_release
-        run: |
-          # 获取最新的上游版本标签
-          latest_upstream_release=$(git tag | grep -v - | sort -V | tail -n 1)
-          echo "latest_upstream_release=${latest_upstream_release}" >> $GITHUB_ENV
-
-      - name: Push new release to origin
-        run: |
-          # 推送上游的最新标签到自己的仓库
-          git push origin "$latest_upstream_release" --tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Create GitHub Release
-        if: env.latest_upstream_release != '' && env.current_tags != env.latest_upstream_release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        with:
-          tag_name: ${{ env.latest_upstream_release }}
-          release_name: Release ${{ env.latest_upstream_release }}
-          body: "Release ${{ env.latest_upstream_release }} from upstream."
-          draft: false
-          prerelease: false
+    - name: Compare versions and create release if needed
+      if: steps.fetch-latest-release.outputs.tag_name != steps.fetch-current-release.outputs.tag_name
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.fetch-latest-release.outputs.tag_name }}
+        release_name: ${{ steps.fetch-latest-release.outputs.release_name }}
+        body: ${{ steps.fetch-latest-release.outputs.release_body }}
+        draft: false
+        prerelease: false
