@@ -1,8 +1,13 @@
 name: Sync Releases
 
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
 on:
   schedule:
-    - cron: '0 */6 * * *' # 每6小时运行一次，具体时间间隔可根据需求调整
+    - cron: '20 */6 * * *' # every 6 hours
   workflow_dispatch: # 手动触发
 
 jobs:
