@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      release_created: ${{ steps.compare-and-create-release.outputs.release_created }}
+      release_created: ${{ steps.compare-versions.outputs.release_created }}
 
     steps:
     - name: Checkout this repository
