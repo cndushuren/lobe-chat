@@ -86,7 +86,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ needs.sync-releases.outputs.latest_tag }}
-          custom-labels: |
+          labels: |
             org.opencontainers.image.version=${{ needs.sync-releases.outputs.latest_tag }}
 
       - name: Set up QEMU
