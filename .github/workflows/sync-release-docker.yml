@@ -100,6 +100,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.sync-releases.outputs.latest_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
