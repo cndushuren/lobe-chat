@@ -13,10 +13,7 @@ on:
 jobs:
   sync-releases:
     runs-on: ubuntu-latest
-
-    outputs:
-      release_created: ${{ steps.compare-versions.outputs.release_created }}
-
+    
     steps:
     - name: Checkout this repository
       uses: actions/checkout@v4
@@ -70,6 +67,10 @@ jobs:
       run: |
         echo "Release created: ${{ steps.compare-versions.outputs.release_created }}"
         echo "RELEASE_CREATED_ENV: ${{env.RELEASE_CREATED_ENV}}"
+        echo "Release created1: ${{ sync-releases.outputs.release_created }}"
+    outputs:
+      release_created: ${{ steps.compare-versions.outputs.release_created }}
+      RELEASE_CREATED_ENV: ${{ steps.compare-versions.outputs.RELEASE_CREATED_ENV }}
 
   publish-docker-image:
     runs-on: ubuntu-latest
@@ -80,7 +81,8 @@ jobs:
         run: |
           echo "RELEASE_CREATED_ENV output: ${{ env.RELEASE_CREATED_ENV }}"
           echo "Release created: ${{needs.sync-releases.outputs.release_created}}"
-          echo "Release created1: ${{needs.sync-releases.steps.compare-versions.outputs.release_created}}"
+          echo "Release created: ${{needs.sync-releases.outputs.RELEASE_CREATED_ENV}}"
+
       - name: Check out the repo
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
