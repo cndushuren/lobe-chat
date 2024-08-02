@@ -86,6 +86,8 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ needs.sync-releases.outputs.latest_tag }}
+          custom-labels: |
+            org.opencontainers.image.version=${{ needs.sync-releases.outputs.latest_tag }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -100,7 +102,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: |
-            org.opencontainers.image.version=${{ needs.sync-releases.outputs.latest_tag }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
