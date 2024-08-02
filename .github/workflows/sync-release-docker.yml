@@ -67,7 +67,6 @@ jobs:
       run: |
         echo "Release created: ${{ steps.compare-versions.outputs.release_created }}"
         echo "RELEASE_CREATED_ENV: ${{env.RELEASE_CREATED_ENV}}"
-        echo "Release created1: ${{ sync-releases.outputs.release_created }}"
     outputs:
       release_created: ${{ steps.compare-versions.outputs.release_created }}
       RELEASE_CREATED_ENV: ${{ steps.compare-versions.outputs.RELEASE_CREATED_ENV }}
