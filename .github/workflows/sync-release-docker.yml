@@ -1,4 +1,4 @@
-name: Sync Releases and Publish Docker Image
+name: Sync Releases Docker Image
 
 permissions:
   contents: write
@@ -40,17 +40,29 @@ jobs:
         echo "::set-output name=tag_name::$CURRENT_TAG_NAME"
       continue-on-error: true # 如果没有发布过release，则忽略错误
 
-    - name: Compare versions and create release if needed
-      id: compare-and-create-release
+    - name: Compare versions
+      id: compare-versions
       run: |
         if [ "${{ steps.fetch-latest-release.outputs.tag_name }}" != "${{ steps.fetch-current-release.outputs.tag_name }}" ]; then
-          echo "New release found. Creating release..."
+          echo "New release found."
           echo "::set-output name=release_created::true"
-          gh release create ${{ steps.fetch-latest-release.outputs.tag_name }} -t "${{ steps.fetch-latest-release.outputs.release_name }}" -n "${{ steps.fetch-latest-release.outputs.release_body }}"
         else
           echo "No new release found."
           echo "::set-output name=release_created::false"
         fi
+
+    - name: Create release
+      id: create-release
+      if: steps.fetch-latest-release.outputs.tag_name != steps.fetch-current-release.outputs.tag_name
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.fetch-latest-release.outputs.tag_name }}
+        release_name: ${{ steps.fetch-latest-release.outputs.release_name }}
+        body: ${{ steps.fetch-latest-release.outputs.release_body }}
+        draft: false
+        prerelease: false
 
   publish-docker-image:
     runs-on: ubuntu-latest
