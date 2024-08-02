@@ -64,8 +64,14 @@ jobs:
         draft: false
         prerelease: false
 
+    - name: Debug output
+      run: |
+        echo "Release created: ${{ steps.compare-versions.outputs.release_created }}"
+
   publish-docker-image:
     runs-on: ubuntu-latest
+    needs: sync-releases
+    if: needs.sync-releases.outputs.release_created == 'true'
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
