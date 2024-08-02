@@ -63,7 +63,7 @@ jobs:
 
     outputs:
       release_created: ${{ steps.compare-versions.outputs.release_created }}
-
+      latest_tag: ${{ steps.fetch-latest-release.outputs.tag_name }}
 
   publish-docker-image:
     runs-on: ubuntu-latest
@@ -85,7 +85,7 @@ jobs:
           images: lizhz/lobe-chat
           tags: |
             type=raw,value=latest
-            type=ref,event=tag
+            type=raw,value=${{ needs.sync-releases.outputs.latest_tag }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
