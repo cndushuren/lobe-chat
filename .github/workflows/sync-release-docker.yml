@@ -1,4 +1,4 @@
-name: Sync Releases Docker Image
+name: Sync Releases and Publish Docker Image
 
 permissions:
   contents: write
@@ -13,6 +13,9 @@ on:
 jobs:
   sync-releases:
     runs-on: ubuntu-latest
+
+    outputs:
+      release_created: ${{ steps.compare-and-create-release.outputs.release_created }}
 
     steps:
     - name: Checkout this repository
@@ -42,17 +45,17 @@ jobs:
       run: |
         if [ "${{ steps.fetch-latest-release.outputs.tag_name }}" != "${{ steps.fetch-current-release.outputs.tag_name }}" ]; then
           echo "New release found. Creating release..."
-          echo "release_created=true" >> $GITHUB_ENV
+          echo "::set-output name=release_created::true"
           gh release create ${{ steps.fetch-latest-release.outputs.tag_name }} -t "${{ steps.fetch-latest-release.outputs.release_name }}" -n "${{ steps.fetch-latest-release.outputs.release_body }}"
         else
           echo "No new release found."
-          echo "release_created=false" >> $GITHUB_ENV
+          echo "::set-output name=release_created::false"
         fi
 
   publish-docker-image:
     runs-on: ubuntu-latest
     needs: sync-releases
-    if: env.release_created == 'true'
+    if: needs.sync-releases.outputs.release_created == 'true'
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
