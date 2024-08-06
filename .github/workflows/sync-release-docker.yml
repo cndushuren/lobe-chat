@@ -27,7 +27,7 @@ jobs:
         RELEASE_BODY=$(echo $LATEST_RELEASE | jq -r .body)
         echo "::set-output name=tag_name::$TAG_NAME"
         echo "::set-output name=release_name::$RELEASE_NAME"
-        echo "::set-output name=release_body::$RELEASE_BODY"
+        echo "::set-output name=release_body::$(echo -e "$RELEASE_BODY")"
 
     - name: Fetch latest release from this repository
       id: fetch-current-release
