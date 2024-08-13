@@ -15,7 +15,9 @@ jobs:
     name: Sync latest commits from upstream repo
     runs-on: ubuntu-latest
     if: ${{ github.event.repository.fork }}
-
+    outputs:
+      latest_commit: ${{ steps.sync.outputs.commit_sha }}
+      
     steps:
       - uses: actions/checkout@v4
 
@@ -59,6 +61,8 @@ jobs:
     steps:
     - name: Checkout this repository
       uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.sync_latest_from_upstream.outputs.latest_commit }}
 
     - name: Fetch latest release from upstream
       id: fetch-latest-release
@@ -106,6 +110,7 @@ jobs:
     outputs:
       release_created: ${{ steps.compare-versions.outputs.release_created }}
       latest_tag: ${{ steps.fetch-latest-release.outputs.tag_name }}
+	    latest_commit: ${{ needs.sync_latest_from_upstream.outputs.latest_commit }}
 
   publish-docker-image:
     runs-on: ubuntu-latest
@@ -114,6 +119,9 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.sync-releases.outputs.latest_commit }}
+          
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
