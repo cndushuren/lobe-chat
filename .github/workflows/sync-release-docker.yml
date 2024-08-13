@@ -110,7 +110,7 @@ jobs:
     outputs:
       release_created: ${{ steps.compare-versions.outputs.release_created }}
       latest_tag: ${{ steps.fetch-latest-release.outputs.tag_name }}
-	    latest_commit: ${{ needs.sync_latest_from_upstream.outputs.latest_commit }}
+      latest_commit: ${{ needs.sync_latest_from_upstream.outputs.latest_commit }}
 
   publish-docker-image:
     runs-on: ubuntu-latest
