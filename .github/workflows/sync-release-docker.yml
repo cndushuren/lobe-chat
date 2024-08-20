@@ -62,10 +62,9 @@ jobs:
             echo "Error: No tag name found in latest release."
             exit 1
           fi
-          RELEASE_BODY_CLEAN= ${RELEASE_NAME}
           echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
           echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
-          echo "RELEASE_BODY=${RELEASE_BODY_CLEAN}" >> $GITHUB_ENV
+          echo "RELEASE_BODY=${RELEASE_NAME}" >> $GITHUB_ENV
 
       - name: Fetch latest release from this repository
         id: fetch-current-release
