@@ -62,7 +62,7 @@ jobs:
             echo "Error: No tag name found in latest release."
             exit 1
           fi
-          RELEASE_BODY_CLEAN=$(echo "$RELEASE_BODY" | jq -R .)
+          RELEASE_BODY_CLEAN= ${RELEASE_NAME}
           echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
           echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
           echo "RELEASE_BODY=${RELEASE_BODY_CLEAN}" >> $GITHUB_ENV
@@ -95,7 +95,7 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           release_name: ${{ env.RELEASE_NAME }}
-          body: ${{ fromJson(env.RELEASE_BODY) }}
+          body: ${{ env.RELEASE_BODY }}
           draft: false
           prerelease: false
 
