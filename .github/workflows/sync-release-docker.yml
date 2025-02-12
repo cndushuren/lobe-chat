@@ -1,0 +1,134 @@
+name: Sync Releases Docker Image
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+on:
+  schedule:
+    - cron: "10 */1 * * *" # 每小时执行
+  workflow_dispatch: # 手动触发
+
+jobs:
+  sync_latest_from_upstream:
+    name: Sync latest commits from upstream repo
+    runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clean issue notice
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "close-issues"
+          labels: "🚨 Sync Fail"
+
+      - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          upstream_sync_repo: lobehub/lobe-chat
+          upstream_sync_branch: main
+          target_sync_branch: main
+          target_repo_token: ${{ secrets.GH_TOKEN }}
+          test_mode: false
+
+      - name: Sync check
+        if: failure()
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "create-issue"
+          title: "🚨 同步失败 | Sync Fail"
+          labels: "🚨 Sync Fail"
+          body: |
+            由于 [LobeChat][lobechat] 上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，你需要手动 Sync Fork 一次，请查看 [详细教程][tutorial-zh-CN]
+
+            ![](https://github-production-user-asset-6210df.s3.amazonaws.com/17870709/273954625-df80c890-0822-4ac2-95e6-c990785cbed5.png)
+
+            [lobechat]: https://github.com/lobehub/lobe-chat
+            [tutorial-zh-CN]: https://github.com/lobehub/lobe-chat/wiki/Upstream-Sync.zh-CN
+            [tutorial-en-US]: https://github.com/lobehub/lobe-chat/wiki/Upstream-Sync
+
+      - name: Fetch latest release from upstream
+        id: fetch-latest-release
+        run: |
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/lobehub/lobe-chat/releases/latest)
+          TAG_NAME=$(echo $LATEST_RELEASE | jq -r .tag_name)
+          RELEASE_NAME=$(echo $LATEST_RELEASE | jq -r .name)
+          RELEASE_BODY=$(echo $LATEST_RELEASE | jq -r .body)
+          if [ "$TAG_NAME" == "null" ]; then
+            echo "Error: No tag name found in latest release."
+            exit 1
+          fi
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
+          echo "RELEASE_BODY=${RELEASE_NAME}" >> $GITHUB_ENV
+
+      - name: Fetch latest release from this repository
+        id: fetch-current-release
+        run: |
+          CURRENT_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
+          CURRENT_TAG_NAME=$(echo $CURRENT_RELEASE | jq -r .tag_name)
+          echo "CURRENT_TAG_NAME=${CURRENT_TAG_NAME}" >> $GITHUB_ENV
+        continue-on-error: true # 如果没有发布过release，则忽略错误
+
+      - name: Compare versions
+        id: compare-versions
+        run: |
+          if [ "${TAG_NAME}" != "${CURRENT_TAG_NAME}" ]; then
+            echo "New release found."
+            echo "RELEASE_CREATED=true" >> $GITHUB_ENV
+          else
+            echo "No new release found."
+            echo "RELEASE_CREATED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create release
+        id: create-release
+        if: env.RELEASE_CREATED == 'true'
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.RELEASE_BODY }}
+          draft: false
+          prerelease: false
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: lizhz/lobe-chat
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ env.TAG_NAME }}
+          labels: |
+            org.opencontainers.image.version=${{ env.TAG_NAME }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: env.RELEASE_CREATED == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
